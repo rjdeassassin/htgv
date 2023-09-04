@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Word Pronunciation and Meaning</title>
+</head>
+<body>
+    <h1>Word Pronunciation and Meaning</h1>
+    <label for="wordInput">Enter a word:</label>
+    <input type="text" id="wordInput" placeholder="Type a word">
+    <label for="accentSelect">Select an accent:</label>
+    <select id="accentSelect">
+        <option value="en-US">American English</option>
+        <option value="en-GB">British English</option>
+        <option value="en-IN">Indian English</option>
+    </select>
+    <button id="pronounceButton">Pronounce</button>
+    <p>Pronunciation:</p>
+    <p id="pronunciation"></p>
+    <p>Meaning:</p>
+    <p id="meaning"></p>
+
+    <script>
+        const wordInput = document.getElementById('wordInput');
+        const pronounceButton = document.getElementById('pronounceButton');
+        const pronunciationOutput = document.getElementById('pronunciation');
+        const meaningOutput = document.getElementById('meaning');
+        const accentSelect = document.getElementById('accentSelect');
+        const synth = window.speechSynthesis;
+
+        pronounceButton.addEventListener('click', () => {
+            const word = wordInput.value;
+            const selectedAccent = accentSelect.value;
+
+            if (word) {
+                getPronunciationAndMeaning(word, selectedAccent);
+            } else {
+                pronunciationOutput.textContent = 'Please enter a word.';
+                meaningOutput.textContent = '';
+            }
+        });
+
+        function getPronunciationAndMeaning(word, accent) {
+            const apiKey = '66d2272dd3mshfd4f12c42c2cd7ep1d2488jsn363ecfce42c9';
+            fetch(`https://wordsapiv1.p.rapidapi.com/words/${word}`, {
+                method: 'GET',
+                headers: {
+                    'X-RapidAPI-Host': 'wordsapiv1.p.rapidapi.com',
+                    'X-RapidAPI-Key': apiKey
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                const pronunciation = data.pronunciation;
+                const meaning = data.results && data.results.length > 0 ? data.results[0].definition : 'Meaning not found';
+
+                const utterance = new SpeechSynthesisUtterance(word);
+                utterance.voice = getVoiceByAccent(accent);
+
+                synth.speak(utterance);
+                utterance.onend = () => {
+                    pronunciationOutput.textContent = `Pronunciation (${accent}): ${pronunciation}`;
+                    meaningOutput.textContent = `Meaning: ${meaning}`;
+                };
+            })
+            .catch(error => {
+                console.error(error);
+                pronunciationOutput.textContent = 'Error fetching data.';
+                meaningOutput.textContent = '';
+            });
+        }
+
+        function getVoiceByAccent(accent) {
+            const voices = synth.getVoices();
+            return voices.find(voice => voice.lang === accent);
+        }
+
+        // Ensure voices are loaded
+        synth.onvoiceschanged = () => {
+            const voices = synth.getVoices();
+            // You can use the voices array to see available voices
+        };
+    </script>
+</body>
+</html>
